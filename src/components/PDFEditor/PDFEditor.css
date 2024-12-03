@@ -1,0 +1,43 @@
+.pdf-editor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.toolbar {
+    margin-bottom: 20px;
+}
+
+.editor {
+    position: relative;
+}
+
+.pdf-container {
+    position: relative;
+    width: 800px;
+    height: 1000px;
+}
+
+.canvas-overlay {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    z-index: 999;
+    /* Ensure it's on top of the Viewer */
+    pointer-events: auto;
+}
+
+.zoom-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+}
+.pdf-container>div:first-child {
+    position: absolute;
+ 
+    z-index: 0;
+    /* Ensure the Viewer is below */
+}
