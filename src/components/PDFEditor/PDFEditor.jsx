@@ -5,8 +5,11 @@ import { zoomPlugin } from "@react-pdf-viewer/zoom";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/zoom/lib/styles/index.css";
 import jsPDF from "jspdf";
-import { pdfjs } from "react-pdf";
+
 import "./PDFEditor.css";
+import { pdfjs } from "react-pdf";
+
+
 
 const PDFEditor = () => {
   const [pdfFile, setPdfFile] = useState(null);
@@ -166,40 +169,32 @@ const handleBlur = () => {
   fabricCanvas.freeDrawingBrush.width = 20 / zoomLevel; // Adjust eraser size for zoom
 };
 
-  const handleSavePDF = async () => {
-    const fabricCanvas = fabricCanvasRef.current;
-    if (!fabricCanvas || !pdfFile) return;
+const handleSavePDF = async () => {
+  const fabricCanvas = fabricCanvasRef.current;
+  if (!fabricCanvas || !pdfFile) return;
 
-    // Initialize jsPDF
-    const pdf = new jsPDF();
+  // Initialize jsPDF
+  const pdf = new jsPDF();
 
-    const pdfDocument = await pdfjs.getDocument(URL.createObjectURL(pdfFile)).promise;
+  // Get the dimensions of the PDF page
+  const pdfWidth = 210; // A4 width in mm
+  const pdfHeight = 297; // A4 height in mm
 
-    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-      const page = await pdfDocument.getPage(pageNum);
+  // If you need to add more pages, you can do so like this:
+  pdf.addPage(); // For example, you can add a new page
 
-      const viewport = page.getViewport({ scale: 1 });
-      const canvasElement = document.createElement("canvas");
-      const context = canvasElement.getContext("2d");
+  // Render the canvas overlay onto the PDF
+  const dataURL = fabricCanvas.toDataURL({
+    format: "png",
+    multiplier: 2, // To ensure good resolution for the annotations
+  });
 
-      canvasElement.width = viewport.width;
-      canvasElement.height = viewport.height;
+  // Add the dataURL to the PDF (this is where the annotations will appear)
+  pdf.addImage(dataURL, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-      await page.render({ canvasContext: context, viewport }).promise;
-
-      const dataURL = fabricCanvas.toDataURL({
-        format: "png",
-        multiplier: 2,
-      });
-
-      if (pageNum > 1) {
-        pdf.addPage();
-      }
-      pdf.addImage(dataURL, "PNG", 0, 0, 210, 297); // A4 dimensions
-    }
-
-    pdf.save("annotated.pdf");
-  };
+  // Save the final PDF
+  pdf.save("annotated.pdf");
+};
 
   const handleUndo = () => {
     const fabricCanvas = fabricCanvasRef.current;
