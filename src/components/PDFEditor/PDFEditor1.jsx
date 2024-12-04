@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { fabric } from "fabric";
 import * as pdfjsLib from "pdfjs-dist";
@@ -76,6 +77,13 @@ const PDFEditor = () => {
       fabricCanvasRef.current = fabricCanvas;
       renderPDFToCanvas(pdfFile);
 
+
+    // Save history for pencil strokes or free drawings
+    fabricCanvas.on("path:created", () => {
+      saveHistory();
+    });
+
+
       return () => {
         fabricCanvas.dispose();
         fabricCanvasRef.current = null;
@@ -106,11 +114,11 @@ const PDFEditor = () => {
       originY: "center",
     });
 
-    saveHistory();
+    
     fabricCanvas.add(text);
     fabricCanvas.setActiveObject(text);
     fabricCanvas.renderAll();
-
+saveHistory();
     activeTextRef.current = text; // Store the active text object
   };
 
@@ -125,6 +133,7 @@ const PDFEditor = () => {
     fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
     fabricCanvas.freeDrawingBrush.color = "black";
     fabricCanvas.freeDrawingBrush.width = 2 / zoomLevel;
+     saveHistory();
   };
 
   const handleErase = () => {
@@ -138,6 +147,7 @@ const PDFEditor = () => {
     fabricCanvas.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas);
     fabricCanvas.freeDrawingBrush.color = "white";
     fabricCanvas.freeDrawingBrush.width = 20 / zoomLevel;
+     saveHistory();
   };
 
   const handleBlur = () => {
@@ -181,10 +191,21 @@ const PDFEditor = () => {
     setZoomLevel((prevZoom) => Math.max(0.1, prevZoom - 0.1));
   };
 
-  const saveHistory = () => {
-    const fabricCanvas = fabricCanvasRef.current;
-    history.current.push(fabricCanvas.toJSON());
-  };
+const saveHistory = () => {
+  const fabricCanvas = fabricCanvasRef.current;
+  if (!fabricCanvas) return;
+
+  // Convert the current canvas state to JSON and push to history
+  const currentState = fabricCanvas.toJSON();
+
+  // Avoid adding duplicate states in the history array
+  if (
+    historyRef.current.length === 0 || 
+    JSON.stringify(historyRef.current[historyRef.current.length - 1]) !== JSON.stringify(currentState)
+  ) {
+    historyRef.current.push(currentState);
+  }
+};
 
   const handleBackspace = (e) => {
     if (activeTextRef.current && e.key === "Backspace") {
@@ -206,6 +227,27 @@ const PDFEditor = () => {
       window.removeEventListener("keydown", handleBackspace);
     };
   }, []);
+
+const handleUndo = () => {
+  const fabricCanvas = fabricCanvasRef.current;
+  if (!fabricCanvas || historyRef.current.length === 0) return;
+
+  // Remove the last state from the history
+  historyRef.current.pop();
+
+  // Load the previous state (if available)
+  const previousState =
+    historyRef.current[historyRef.current.length - 1] || null;
+
+  if (previousState) {
+    fabricCanvas.loadFromJSON(previousState, () => {
+      fabricCanvas.renderAll();
+    });
+  } else {
+    // If no previous state, clear the canvas
+    fabricCanvas.clear();
+  }
+};
 
   // Handle image upload
 const handleAddImage = (e) => {
@@ -236,6 +278,7 @@ const handleAddImage = (e) => {
       });
     };
     reader.readAsDataURL(file);
+    saveHistory();
   } else {
     alert("Please upload a valid image file.");
   }
@@ -252,6 +295,7 @@ const handleAddImage = (e) => {
         <button onClick={handleSavePDF}>Save PDF</button>
         <button onClick={handleZoomIn}>Zoom In</button>
         <button onClick={handleZoomOut}>Zoom Out</button>
+         <button onClick={handleUndo}>Undo</button>
     <input 
   type="file" 
   accept="image/*" 
