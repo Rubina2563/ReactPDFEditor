@@ -7,6 +7,9 @@
 
 .toolbar {
     margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
 }
 
 .editor {
@@ -15,13 +18,20 @@
 
 .pdf-container {
     position: relative;
-    width: 800px;
-    height: 1000px;
+    max-width: 800px;
+    height: 100%;
+    width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        border: 1px solid #ccc;
 }
 
 .canvas-overlay {
     position: absolute;
-
+border: 1px solid #ccc;
     top: 0;
     left: 0;
     z-index: 999;
@@ -40,4 +50,48 @@
  
     z-index: 0;
     /* Ensure the Viewer is below */
+}
+canvas {
+    border: 1px solid #000;
+width: 100%;
+    height: 100%;
+}
+
+/* Style the file input */
+.custom-file-input {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: hsl(219, 98%, 58%);
+    color: white;
+    border: 2px solid #4CAF50;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 200px;
+    text-align: center;
+    font-weight: bold;
+    outline: none;
+}
+
+/* Change color when hovered */
+.custom-file-input:hover {
+    background-color: blue;
+}
+
+/* Style the text when the file is selected */
+.custom-file-input:focus {
+    background-color: blue;
+}
+
+/* Hide the default file input button (for full customization) */
+.custom-file-input::-webkit-file-upload-button {
+    display: none;
+}
+
+/* Optional: Add a custom text for file input */
+.custom-file-input::before {
+    content: 'Add Image';
+    display: block;
+    color: white;
+    font-weight: bold;
 }

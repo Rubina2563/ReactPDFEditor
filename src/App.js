@@ -1,12 +1,12 @@
 import React from "react";
-import PDFEditor from "./components/PDFEditor/PDFEditor";
+import PDFEditor1 from "./components/PDFEditor/PDFEditor1";
 import "./styles/global.css";
 
 const App = () => {
   return (
     <div>
       <h1 className='text-center'>PDF Editor</h1>
-      <PDFEditor />
+      <PDFEditor1 />
     </div>
   );
 };

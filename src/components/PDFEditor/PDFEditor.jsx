@@ -5,9 +5,11 @@ import { zoomPlugin } from "@react-pdf-viewer/zoom";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/zoom/lib/styles/index.css";
 import jsPDF from "jspdf";
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
+
 
 import "./PDFEditor.css";
-import { pdfjs } from "react-pdf";
 
 
 
@@ -34,62 +36,97 @@ const PDFEditor = () => {
       alert("Please upload a valid PDF file.");
     }
   };
-  const onPdfLoad = async (e) => {
+const onPdfLoad = (e) => {
   setPdfLoaded(true);
-  if (pdfFile && canvasRef.current) {
-    const pdfDocument = await pdfjs.getDocument(URL.createObjectURL(pdfFile)).promise;
-    const firstPage = await pdfDocument.getPage(1);
 
-    const viewport = firstPage.getViewport({ scale: 1 });
+  if (pdfFile && canvasRef.current) {
+    // Assuming you have precomputed or extracted width and height
+    const pageWidth = 600; // Replace with your logic to get page width
+    const pageHeight = 800; // Replace with your logic to get page height
+
+    // Update canvas dimensions
+    canvasRef.current.width = pageWidth;
+    canvasRef.current.height = pageHeight;
 
     const fabricCanvas = fabricCanvasRef.current;
 
-    // Update canvas dimensions based on the PDF page size
-    canvasRef.current.width = viewport.width;
-    canvasRef.current.height = viewport.height;
-
     if (fabricCanvas) {
-      fabricCanvas.setWidth(viewport.width);
-      fabricCanvas.setHeight(viewport.height);
+      fabricCanvas.setWidth(pageWidth);
+      fabricCanvas.setHeight(pageHeight);
       fabricCanvas.renderAll();
     }
   }
 };
 
-  useEffect(() => {
-    if (pdfLoaded && canvasRef.current) {
-      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-        backgroundColor: "transparent",
-        selection: true,
-      });
-
-      fabricCanvasRef.current = fabricCanvas;
-      actionStack.current.push(fabricCanvas.toJSON());
-
-      return () => {
-        fabricCanvas.dispose();
-        fabricCanvasRef.current = null;
-      };
-    }
-  }, [pdfLoaded]);
-
 useEffect(() => {
-  if (fabricCanvasRef.current && pdfLoaded) {
-    const fabricCanvas = fabricCanvasRef.current;
+  if (pdfFile && canvasRef.current) {
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      selection: true,
+    });
 
-    // Ensure the canvas size is based on the PDF dimensions
-    const pdfContainer = document.querySelector(".pdf-container");
-    if (!pdfContainer) return;
+    fabricCanvasRef.current = fabricCanvas;
 
-    const pdfWidth = pdfContainer.offsetWidth;
-    const pdfHeight = pdfContainer.offsetHeight;
+    const renderPDFToCanvas = async (pdfFile) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-    fabricCanvas.setWidth(pdfWidth * zoomLevel);
-    fabricCanvas.setHeight(pdfHeight * zoomLevel);
-    fabricCanvas.setZoom(zoomLevel);
-    fabricCanvas.renderAll();
+        const pdfData = new Uint8Array(reader.result);
+        const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+        const page = await pdfDoc.getPage(1); // Render the first page
+
+        const viewport = page.getViewport({ scale: 1.5 }); // Adjust the scale for better quality
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        // Render the PDF page into the canvas
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+        await page.render(renderContext).promise;
+
+        // Convert the canvas to a data URL and load it as a background image in Fabric.js
+        const imageDataUrl = canvas.toDataURL();
+        fabric.Image.fromURL(imageDataUrl, (img) => {
+          fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas));
+        });
+      };
+
+      reader.readAsArrayBuffer(pdfFile);
+    };
+
+    renderPDFToCanvas(pdfFile);
+
+    return () => {
+      fabricCanvas.dispose();
+      fabricCanvasRef.current = null;
+    };
   }
-}, [zoomLevel, pdfLoaded]);
+}, [pdfFile]);
+
+
+
+  useEffect(() => {
+    if (fabricCanvasRef.current && pdfLoaded) {
+      const fabricCanvas = fabricCanvasRef.current;
+
+      // Adjust canvas size based on the loaded image (PDF converted to image)
+      const pdfContainer = document.querySelector(".pdf-container");
+      if (!pdfContainer) return;
+
+      const pdfWidth = pdfContainer.offsetWidth;
+      const pdfHeight = pdfContainer.offsetHeight;
+
+      fabricCanvas.setWidth(pdfWidth * zoomLevel);
+      fabricCanvas.setHeight(pdfHeight * zoomLevel);
+      fabricCanvas.setZoom(zoomLevel);
+      fabricCanvas.renderAll();
+    }
+  }, [zoomLevel, pdfLoaded]);
 
 
   const saveState = () => {
