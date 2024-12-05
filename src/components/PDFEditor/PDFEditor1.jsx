@@ -13,7 +13,7 @@ const PDFEditor = () => {
   const [activeTool, setActiveTool] = useState(""); // Track the active tool
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
-  const history = useRef([]);
+  const historyRef = useRef([]);
   const redoStack = useRef([]);
   const activeTextRef = useRef(null); // Reference to active text object
 
